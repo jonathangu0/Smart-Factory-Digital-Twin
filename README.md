@@ -1,126 +1,37 @@
-# Training Factory Industry 4.0 - Live Digital Twin
+# Smart Factory Digital Twin
 
-A live, mechanically accurate **3D digital twin** of the fischertechnik *Training
-Factory Industry 4.0 (24V)*, built in **NVIDIA Isaac Sim**. It uses the real
-factory's CAD geometry and runs in **real time off the factory's OPC‑UA data**.
-Run a cycle on the physical factory and the 3D scene mirrors it.
+A live 3D digital twin of a fischertechnik training factory, built with Python and NVIDIA Isaac Sim. The system connects physical factory telemetry to a virtual scene for machine-state monitoring, motion visualization, and production analysis.
 
-It also runs fully **offline**. A built‑in demo and a full order‑cycle animation let
-you watch every station move with no hardware connected.
+Developed during my **Software Engineering Internship with the Infosys InStep Program in Bangalore, India, June–August 2026**.
 
-<!-- Add a screenshot at docs/img/overview.png to show it here -->
+## My Contributions
 
----
+- Built a Python telemetry pipeline integrating OPC UA and MQTT data from a Siemens S7-1500 PLC to support a digital twin of a six-station training factory.
+- Automated discovery of 2,510 OPC UA nodes to identify machine-state and motion signals.
+- Developed a 42-tag event logger with automatic reconnection to capture timestamped production histories for replay and analysis.
+- Implemented Isaac Sim station drivers that translate factory signals into robot, warehouse, processing, and sorting-line motion.
+- Created offline demonstrations and a full order-cycle animation so the virtual factory can be explored without connected hardware.
 
-## What it does
+## How It Works
 
-Polls the factory PLC over OPC‑UA (~10×/s) and reflects order state, the active
-station, and the VGR/HBW axis positions. A glowing beacon marks the active station
-and a HUD shows the live values.
+The live integration reads factory state and axis positions over OPC UA. Python drivers update the corresponding objects in Isaac Sim, while a heads-up display and station indicator expose the current operating state.
 
-Each station physically moves the correct parts:
+Event logging captures production histories for subsequent analysis. Separate offline animations demonstrate station movement and the product’s journey through the factory.
 
-- **VGR** (Vacuum Gripper Robot): 3 axes (rotate, lift, arm extend); carries a workpiece.
-- **HBW** (High‑Bay Warehouse): stacker crane travels the rack, fork lifts; 9 stored pucks.
-- **MPO** (Multi‑Processing Station): turntable indexes with its vacuum gripper.
-- **SLD** (Sorting Line): belt travel plus colour ejection into bins.
-- **DPS** (Delivery/Pickup): static (no axes; serviced by the VGR), per the official docs.
+## Operating Modes
 
-For the full order cycle, one product travels **HBW → VGR → MPO → SLD → VGR → DPS**,
-handed off between machines, on a 64‑second loop.
+| Mode | Purpose |
+|---|---|
+| Live digital twin | Visualize machine states and motion from a connected factory. |
+| Offline demonstration | Explore station animations without physical hardware. |
+| Full order cycle | Follow a simulated product through the manufacturing sequence. |
 
----
+## Technology
 
-## Repository layout
+Python · NVIDIA Isaac Sim · USD · OPC UA · MQTT · Node-RED · Siemens S7-1500
 
-```
-digitaltwinsf/
-├── scene/
-│   └── TrainingFactoryDigitalTwin.usd   # THE scene (open this in Isaac Sim)
-├── assets/
-│   ├── training_factory_official.gltf   # factory CAD geometry
-│   └── training_factory_official.bin    # geometry buffer (Git LFS — 400 MB)
-├── drivers/                             # Python that brings the scene to life
-│   ├── 00_factory_live.py               #   live OPC-UA mirror + HUD + beacon
-│   ├── 01_vgr.py                        #   VGR 3-axis articulation
-│   ├── 02_hbw.py                        #   HBW crane + rack pucks
-│   ├── 03_mpo.py                        #   MPO turntable
-│   ├── 04_sld.py                        #   SLD sorting line
-│   ├── 05_vgr_workpiece.py              #   workpiece that rides the VGR gripper
-│   ├── demo_cycle.py                    #   offline gentle demo (all stations)
-│   ├── full_cycle.py                    #   full product journey animation
-│   ├── camera_overview.py               #   frame the whole factory
-│   └── screenshot.py                    #   save a viewport screenshot
-├── analysis/                            # OPC-UA discovery deliverables
-│   ├── opcua_catalog.json               #   every browsed node
-│   ├── opcua_nodes.csv                  #   node list as a spreadsheet
-│   ├── nodered_flows.json               #   exported Node-RED flows
-│   ├── browse_opcua.py                  #   re-browse the PLC
-│   ├── event_logger.py                  #   timestamp live events to JSONL
-│   └── sample_events.jsonl              #   example event log
-├── reference/                           # official fischertechnik manuals (PDF/text)
-├── docs/                                # detailed documentation (start with SETUP)
-├── Launch-IsaacSim-MCP.bat              # start Isaac Sim with the MCP extension
-└── .mcp.json                            # MCP server config for the AI tooling
-```
+## Setup and Technical Documentation
 
----
+See [Setup](docs/SETUP.md), [Running the Twin](docs/RUNNING.md), and [Architecture](docs/ARCHITECTURE.md) for installation, operating instructions, and implementation details.
 
-## Quick start
-
-### One click (recommended)
-Double‑click **`START_LIVE_TWIN.bat`**. It launches Isaac Sim, opens the scene,
-enables the MCP server, waits for the geometry to load, and auto‑runs every station
-driver, so you land directly on the live twin. Keep the console window open.
-
-*(First launch: install Isaac Sim 6.0.1 and clone the repo. See [docs/SETUP.md](docs/SETUP.md).
-If using Git LFS for the 400 MB geometry buffer, run `git lfs install` before cloning.)*
-
-### By hand
-> Full step‑by‑step is in **[docs/RUNNING.md](docs/RUNNING.md)**. In brief:
-
-1. **Open the scene**: launch Isaac Sim and open `scene/TrainingFactoryDigitalTwin.usd`.
-2. **Start the drivers**: in the Script Editor, run the driver scripts in order:
-   `00_factory_live.py` → `01_vgr.py` → `02_hbw.py` → `03_mpo.py` → `04_sld.py`
-   → `05_vgr_workpiece.py`.
-
-Either way, then pick a mode:
-
-- **Live twin**: be on the factory network and run a cycle on the real factory. The
-  3D scene mirrors the real machines in real time.
-- **Offline demo**: run `demo_cycle.py`. Every station moves through a slow loop.
-- **Full order cycle**: run `full_cycle.py`. One product travels the whole factory.
-
-To frame the whole factory, run `camera_overview.py`.
-
----
-
-## The live connection
-
-| Thing | Value |
-|-------|-------|
-| Factory Wi‑Fi | `TP-Link_8911` |
-| PLC (OPC‑UA) | `opc.tcp://192.168.0.1:4840` (anonymous) |
-| Node‑RED | `http://192.168.0.5:1880` |
-| MQTT broker | `192.168.0.10:1883` (user `txt` / pass `xtx`) |
-| Isaac Sim MCP | WebSocket `localhost:8766` |
-
-See **[docs/OPCUA.md](docs/OPCUA.md)** for the exact node IDs the twin reads.
-
----
-
-## Documentation
-
-- **[docs/SETUP.md](docs/SETUP.md)**: install Isaac Sim, the MCP server, and connect to the factory.
-- **[docs/RUNNING.md](docs/RUNNING.md)**: open the scene, run every mode, and all the live controls.
-- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)**: how the scene, drivers, and OPC‑UA loop fit together.
-- **[docs/STATIONS.md](docs/STATIONS.md)**: each station's mechanics, moving parts, and calibration.
-- **[docs/OPCUA.md](docs/OPCUA.md)**: the OPC‑UA node map and the analysis deliverables.
-
----
-
-## Hardware
-
-fischertechnik **Training Factory Industry 4.0, 24 V** (product 551584 / 554868).
-Six stations (VGR, HBW, MPO, SLD, DPS, SSC) on a Siemens S7‑1500 PLC, with a
-Node‑RED dashboard and MQTT broker.
+Live operation requires compatible factory hardware and locally configured connection settings. Offline demonstrations do not require a factory connection.
